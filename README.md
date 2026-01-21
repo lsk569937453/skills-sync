@@ -1,17 +1,18 @@
 # Skills Sync
 
-一个用于同步 Claude Code skills 的命令行工具，支持将本地 skills 上传到远端服务器或从服务器下载。
+A command-line tool for synchronizing Claude Code skills. Upload local skills to a remote server or download skills from the server.
 
-## 功能特性
+## Features
 
-- **上传 skills**: 扫描本地 skills 目录，打包上传到远端服务器
-- **下载 skills**: 通过业务码从服务器下载并恢复 skills 到本地
-- **进度显示**: 上传和下载过程显示进度条
-- **哈希校验**: 支持 SHA256 哈希值计算确保文件完整性
+- **Upload skills**: Scan local skills directories, package and upload to remote server
+- **Download skills**: Download and restore skills from server using business code
+- **Progress display**: Progress bars for upload and download operations
+- **Hash verification**: SHA256 hash calculation to ensure file integrity
+- **List skills**: Display locally installed skills in a table format
 
-## 安装
+## Installation
 
-### 从源码编译
+### Build from source
 
 ```bash
 git clone https://github.com/your-username/skills-sync.git
@@ -19,35 +20,156 @@ cd skills-sync
 cargo build --release
 ```
 
-编译后的可执行文件位于 `target/release/skills-sync.exe` (Windows) 或 `target/release/skills-sync` (Linux/macOS)。
+The compiled executable will be located at `target/release/skills-sync.exe` (Windows) or `target/release/skills-sync` (Linux/macOS).
 
-## 使用方法
+## Usage
 
-### 上传 skills
+### Upload skills
 
-上传默认目录（`~/.claude/skills/` 和 `~/.codex/skills/`）中的所有 skills：
+Upload all skills from default directories (`~/.claude/skills/` and `~/.codex/skills/`):
 
 ```bash
 skills-sync upload
 ```
 
-指定上传目录：
+Upload from a specific directory:
 
 ```bash
 skills-sync upload -d /path/to/skills
 ```
 
-指定服务器地址：
+Specify server address:
 
 ```bash
 skills-sync upload -s http://localhost:8080
 ```
 
+Full Example / 完整参数示例:
 
-### 下载 skills
+```bash
+skills-sync upload -s http://localhost:8080 -d /path/to/skills
+```
 
-通过业务码下载 skills：
+### Download skills
+
+Download skills using business code:
 
 ```bash
 skills-sync download -c ABC123
 ```
+
+Specify server address:
+
+```bash
+skills-sync download -c ABC123 -s http://localhost:8080
+```
+
+Specify extraction directory:
+
+```bash
+skills-sync download -c ABC123 -d /path/to/output
+```
+
+### List skills
+
+List all locally installed skills:
+
+```bash
+skills-sync list
+```
+
+List skills from a specific directory:
+
+```bash
+skills-sync list -d /path/to/skills
+```
+
+## Default Scan Directories
+
+- `~/.claude/skills/`
+- `~/.codex/skills/`
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `upload` | Upload local skills to remote repository |
+| `download` | Download skills from remote repository |
+| `list` | List locally installed skills |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-s, --server <URL>` | Remote server address (default: `https://www.937453.xyz`) |
+| `-d, --dir <PATH>` | Local skills directory path |
+| `-c, --code <CODE>` | Business code (for download) |
+| `-h, --help` | Display help information |
+| `-V, --version` | Display version information |
+
+## Output Examples
+
+### Upload
+
+```bash
+$ skills-sync upload
+🔍 Scanning directory / 扫描目录: C:\Users\user\.claude\skills
+🔍 Scanning directory / 扫描目录: C:\Users\user\.codex\skills
+📄 Found 4 SKILL.md files / 找到 4 个 SKILL.md 文件
+📦 Starting to package SKILL.md files / 开始打包 SKILL.md 文件...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Packaged files / 打包文件:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ✓ ~/.claude/skills/humanizer-zh/SKILL.md
+  ✓ ~/.claude/skills/vercel-react-best-practices/SKILL.md
+  ✓ ~/.codex/skills/humanizer-zh/SKILL.md
+  ✓ ~/.codex/skills/vercel-react-best-practices/SKILL.md
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Zip file SHA256 / Zip 文件 SHA256: c07f91bf155a0b0669a0928db0b5e909fc3204bb92e5101465a39c5378b8d5b6
+📤 Uploading to / 上传到: https://www.937453.xyz/sync/upload
+⬆️  Starting upload / 开始上传...
+✅ Business code / 业务码: 4966f452-7365-4b2b-a218-6f0736976777
+🗑️  Temporary files cleaned / 已清理临时文件
+```
+
+### Download
+
+```bash
+$ skills-sync download -c ABC123
+Downloading / 正在下载...
+Download complete / 下载完成!
+Zip file SHA256 / Zip 文件 SHA256: c19544cf7fd5872d08d75bf1b3207c279908bd25f14e8216808c86a64f98fc95
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Extracted files / 解压文件:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ✓ ~/.claude/skills/humanizer-zh/SKILL.md
+  ✓ ~/.claude/skills/vercel-react-best-practices/SKILL.md
+  ✓ ~/.codex/skills/humanizer-zh/SKILL.md
+  ✓ ~/.codex/skills/vercel-react-best-practices/SKILL.md
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+### List
+
+```bash
+$ skills-sync list
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  📁 .claude directory / .claude 目录 - 2 skills
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+┌─────────────────────────────┬─────────────────────┬────────────────────────────────┐
+│ Name / 名称                 ┆ Description / 描述  ┆ Path / 路径                    │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+│ humanizer-zh                ┆ Remove AI writing... ┆ ~/.claude/skills/.../SKILL.md │
+└─────────────────────────────┴─────────────────────┴────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Total / 总计: 4 skills
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+## License
+
+MIT

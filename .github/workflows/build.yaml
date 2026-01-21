@@ -1,0 +1,60 @@
+name: "Release"
+
+# This will trigger the action on each push tag
+on:
+    push:
+        tags:
+            - "*"
+
+permissions:
+    contents: write
+
+jobs:
+    release:
+        strategy:
+            matrix:
+                platform:
+                    - release_for: linux-x86_64
+                      os: ubuntu-24.04
+                      target: x86_64-unknown-linux-gnu
+                      bin: skills-sync
+                      name: skills-sync-x86_64-unknown-linux-gnu
+
+                    - release_for: windows-x86_64
+                      os: windows-latest
+                      target: x86_64-pc-windows-msvc
+                      bin: skills-sync.exe
+                      name: skills-sync-windows-x86_64.exe
+
+                    - release_for: macOS-x86_64
+                      os: macOS-latest
+                      target: x86_64-apple-darwin
+                      bin: skills-sync
+                      name: skills-sync-darwin-x86_64
+
+                    - release_for: macOS-arm64
+                      os: macOS-latest
+                      target: aarch64-apple-darwin
+                      bin: skills-sync
+                      name: skills-sync-darwin-aarch64
+
+        runs-on: ${{ matrix.platform.os }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Build binary
+              uses: houseabsolute/actions-rust-cross@v0
+              with:
+                  command: build
+                  target: ${{ matrix.platform.target }}
+                  args: "--release"
+                  strip: true
+
+            - name: Upload binaries to release
+              uses: svenstaro/upload-release-action@v2
+              with:
+                  repo_token: ${{ secrets.GITHUB_TOKEN }}
+                  file: target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
+                  asset_name: ${{ matrix.platform.name }}
+                  tag: ${{ github.ref }}
