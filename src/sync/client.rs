@@ -12,6 +12,119 @@ use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 use zip::ZipWriter;
 
+/// IP API 响应结构（ipapi.co）
+#[derive(Deserialize)]
+struct IpApiResponse {
+    country: Option<String>,
+}
+
+/// ipinfo.io 响应结构
+#[derive(Deserialize)]
+struct IpInfoResponse {
+    country: Option<String>,
+}
+
+/// ifconfig.co 响应结构
+#[derive(Deserialize)]
+struct IfConfigResponse {
+    country: Option<String>,
+}
+
+/// 根据 IP 地理位置自动选择服务器
+/// 如果用户在中国则返回国内服务器，否则返回国外服务器
+pub async fn auto_select_server() -> String {
+    const CN_SERVER: &str = "https://www.937453.xyz";
+    const FOREIGN_SERVER: &str = "https://outside.937453.xyz";
+
+    match detect_country().await {
+        Ok(country) if country == "CN" => {
+            println!("📍 Detected location: China (CN) / 检测到位置: 中国");
+            CN_SERVER.to_string()
+        }
+        Ok(country) => {
+            println!("📍 Detected location: {} / 检测到位置: {}", country, country);
+            FOREIGN_SERVER.to_string()
+        }
+        Err(e) => {
+            println!("⚠️  Failed to detect location, using default server / 无法检测位置，使用默认服务器: {}", e);
+            CN_SERVER.to_string()
+        }
+    }
+}
+
+/// 检测用户所在国家代码（支持多个备用 API）
+async fn detect_country() -> Result<String> {
+    let mut errors = Vec::new();
+
+    // 尝试 ipapi.co
+    match detect_via_ipapi().await {
+        Ok(country) => return Ok(country),
+        Err(e) => errors.push(format!("ipapi.co: {}", e)),
+    }
+
+    // 尝试 ipinfo.io
+    match detect_via_ipinfo().await {
+        Ok(country) => return Ok(country),
+        Err(e) => errors.push(format!("ipinfo.io: {}", e)),
+    }
+
+    // 尝试 ifconfig.co
+    match detect_via_ifconfig().await {
+        Ok(country) => return Ok(country),
+        Err(e) => errors.push(format!("ifconfig.co: {}", e)),
+    }
+
+    Err(anyhow::anyhow!("All IP APIs failed:\n  - {}", errors.join("\n  - ")))
+}
+
+/// 通过 ipapi.co 检测国家
+async fn detect_via_ipapi() -> Result<String> {
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()?;
+
+    let resp = client.get("https://ipapi.co/json/").send().await?;
+
+    if !resp.status().is_success() {
+        return Err(anyhow::anyhow!("HTTP {}", resp.status()));
+    }
+
+    let info: IpApiResponse = resp.json().await?;
+    info.country.context("No country field in response")
+}
+
+/// 通过 ipinfo.io 检测国家
+async fn detect_via_ipinfo() -> Result<String> {
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()?;
+
+    let resp = client.get("https://ipinfo.io/json").send().await?;
+
+    if !resp.status().is_success() {
+        return Err(anyhow::anyhow!("HTTP {}", resp.status()));
+    }
+
+    let info: IpInfoResponse = resp.json().await?;
+    info.country.context("No country field in response")
+}
+
+/// 通过 ifconfig.co 检测国家
+async fn detect_via_ifconfig() -> Result<String> {
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()?;
+
+    let resp = client.get("https://ifconfig.co/json").send().await?;
+
+    if !resp.status().is_success() {
+        return Err(anyhow::anyhow!("HTTP {}", resp.status()));
+    }
+
+    let info: IfConfigResponse = resp.json().await?;
+    info.country.context("No country field in response")
+}
+
 /// 获取默认的 skills 目录路径列表（.claude/skills 和 .codex/skills）
 fn get_default_skills_dirs() -> Result<Vec<PathBuf>> {
     let home_dir = dirs::home_dir().context("Failed to get home directory / 无法获取用户目录")?;
@@ -331,7 +444,15 @@ pub fn extract_zip(zip_path: &Path, _target_dir: &Path) -> Result<()> {
 }
 
 /// 执行上传命令
-pub async fn execute_upload(dir: Option<String>, server: String) -> Result<()> {
+pub async fn execute_upload(dir: Option<String>, server: Option<String>) -> Result<()> {
+    // 如果没有指定服务器，则根据地理位置自动选择
+    let server_url = if let Some(s) = server {
+        println!("🌐 Using specified server / 使用指定服务器: {}", s);
+        s
+    } else {
+        auto_select_server().await
+    };
+
     let base_dirs = if let Some(d) = dir {
         vec![PathBuf::from(d)]
     } else {
@@ -355,7 +476,7 @@ pub async fn execute_upload(dir: Option<String>, server: String) -> Result<()> {
     println!("✅ Zip file SHA256 / Zip 文件 SHA256: {}", sha256);
 
     // 上传
-    let code = upload_zip(&zip_path, &server).await?;
+    let code = upload_zip(&zip_path, &server_url).await?;
     println!("✅ Business code / 业务码: {}", code);
 
     // 清理临时文件
@@ -366,7 +487,15 @@ pub async fn execute_upload(dir: Option<String>, server: String) -> Result<()> {
 }
 
 /// 执行下载命令
-pub async fn execute_download(code: String, dir: Option<String>, server: String) -> Result<()> {
+pub async fn execute_download(code: String, dir: Option<String>, server: Option<String>) -> Result<()> {
+    // 如果没有指定服务器，则根据地理位置自动选择
+    let server_url = if let Some(s) = server {
+        println!("🌐 Using specified server / 使用指定服务器: {}", s);
+        s
+    } else {
+        auto_select_server().await
+    };
+
     let target_dir = if let Some(d) = dir {
         PathBuf::from(d)
     } else {
@@ -380,7 +509,7 @@ pub async fn execute_download(code: String, dir: Option<String>, server: String)
     let zip_path = temp_dir.join(format!("skills_{}.zip", chrono::Utc::now().timestamp()));
 
     // 下载
-    let sha256 = download_zip(&code, &server, &zip_path).await?;
+    let sha256 = download_zip(&code, &server_url, &zip_path).await?;
     println!("Zip file SHA256 / Zip 文件 SHA256: {}", sha256);
 
     // 解压

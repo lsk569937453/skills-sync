@@ -26,14 +26,13 @@ pub struct Cli {
     #[command(subcommand)]
     pub command: Command,
 
-    /// 远端服务器地址
+    /// 远端服务器地址 (未指定时根据 IP 自动选择 / Auto-selected by IP if not specified)
     #[arg(
         short = 's',
         long,
-        global = true,
-        default_value = "https://www.937453.xyz"
+        global = true
     )]
-    pub server: String,
+    pub server: Option<String>,
 }
 
 #[derive(Debug, Subcommand)]
