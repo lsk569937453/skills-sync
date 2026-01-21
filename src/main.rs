@@ -1,7 +1,7 @@
 mod sync;
 
 use crate::sync::cli::Cli;
-use crate::sync::client::{execute_download, execute_upload};
+use crate::sync::client::{execute_download, execute_list, execute_upload};
 use clap::Parser;
 
 #[tokio::main]
@@ -22,6 +22,9 @@ async fn run_sync_client(cli: Cli) -> Result<(), anyhow::Error> {
         }
         crate::sync::cli::Command::Download { code, dir } => {
             execute_download(code, dir, cli.server).await?;
+        }
+        crate::sync::cli::Command::List { dir } => {
+            execute_list(dir)?;
         }
     }
     Ok(())

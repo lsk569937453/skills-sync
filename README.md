@@ -43,11 +43,6 @@ skills-sync upload -d /path/to/skills
 skills-sync upload -s http://localhost:8080
 ```
 
-完整参数示例：
-
-```bash
-skills-sync upload -s http://localhost:8080 -d /path/to/skills
-```
 
 ### 下载 skills
 
@@ -55,16 +50,4 @@ skills-sync upload -s http://localhost:8080 -d /path/to/skills
 
 ```bash
 skills-sync download -c ABC123
-```
-
-指定服务器地址：
-
-```bash
-skills-sync download -c ABC123 -s http://localhost:8080
-```
-
-指定解压目录：
-
-```bash
-skills-sync download -c ABC123 -o /path/to/output
 ```
